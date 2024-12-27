@@ -1,0 +1,177 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.navbar {
+    background-color: #333;
+    padding: 1rem;
+    color: white;
+    display: flex;
+    justify-content: space-around;
+}
+
+.products, .cart {
+    padding: 2rem;
+}
+
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Products from './components/Products';
+import Cart from './components/Cart';
+import './App.css';
+
+const App = () => {
+    return (
+        <Router>
+            <Navbar />
+            <Routes>
+                <Route path="/" element={<Products />} />
+                <Route path="/cart" element={<Cart />} />
+            </Routes>
+        </Router>
+    );
+};
+
+export default App;
+
+
+import React, { useState } from 'react';
+import axios from 'axios';
+
+const Cart = () => {
+    const [cart, setCart] = useState([]);
+    const [message, setMessage] = useState('');
+
+    const checkout = () => {
+        axios.post('http://localhost:5000/checkout', { items: cart })
+            .then((response) => setMessage(response.data.message))
+            .catch((error) => setMessage('Checkout failed.'));
+    };
+
+    return (
+        <div className="cart">
+            <h1>Your Cart</h1>
+            <ul>
+                {cart.map((item, index) => (
+                    <li key={index}>
+                        {item.name} - ${item.price}
+                    </li>
+                ))}
+            </ul>
+            <button onClick={checkout}>Checkout</button>
+            {message && <p>{message}</p>}
+        </div>
+    );
+};
+
+export default Cart;
+
+
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Navbar = () => {
+    return (
+        <nav className="navbar">
+            <Link to="/">Products</Link>
+            <Link to="/cart">Cart</Link>
+        </nav>
+    );
+};
+
+export default Navbar;
+
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+
+const Products = () => {
+    const [products, setProducts] = useState([]);
+    const [cart, setCart] = useState([]);
+
+    useEffect(() => {
+        axios.get('http://localhost:5000/products')
+            .then((response) => setProducts(response.data))
+            .catch((error) => console.error(error));
+    }, []);
+
+    const addToCart = (product) => {
+        setCart([...cart, product]);
+        alert(`${product.name} added to cart!`);
+    };
+
+    return (
+        <div className="products">
+            <h1>Products</h1>
+            <ul>
+                {products.map((product) => (
+                    <li key={product.id}>
+                        <h3>{product.name}</h3>
+                        <p>{product.description}</p>
+                        <p>Price: ${product.price}</p>
+                        <button onClick={() => addToCart(product)}>Add to Cart</button>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+};
+
+export default Products;
+
+
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+const app = express();
+
+// Middleware
+app.use(bodyParser.json());
+app.use(cors());
+
+// Simulated Database
+let products = [
+    { id: 1, name: 'Laptop', price: 800, description: 'A high-performance laptop' },
+    { id: 2, name: 'Smartphone', price: 500, description: 'A smartphone with a great camera' },
+    { id: 3, name: 'Headphones', price: 100, description: 'Noise-cancelling headphones' },
+];
+
+let orders = [];
+
+// Routes
+app.get('/products', (req, res) => {
+    res.json(products);
+});
+
+app.post('/checkout', (req, res) => {
+    const { items } = req.body;
+    if (items.length > 0) {
+        orders.push(items);
+        res.status(200).json({ message: 'Order placed successfully!' });
+    } else {
+        res.status(400).json({ message: 'Cart is empty.' });
+    }
+});
+
+// Start Server
+const PORT = 5000;
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
